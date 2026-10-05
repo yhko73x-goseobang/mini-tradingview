@@ -1,0 +1,18 @@
+C:\Users\yhko7\OneDrive\문서\기본 프로젝트\차트앱소스.zip (82KB, node_modules 제외)
+
+구성:
+
+index.html (7KB) — 진입점, 전체 UI 구조
+app.js (31KB) — 전체 연결 (차트+피드+얼럿+워치리스트+백그라운드 감시)
+chart.js (21KB) — Canvas 캔들 엔진 (팬/줌/세로줌/페인리사이즈/크로스헤어)
+datafeed.js (33KB) — 키움 REST/WS + 야후 폴백 + 시뮬 피드, getBars/subscribeBars
+pinebundle.js (35KB) — 파인스크립트 포팅 지표 (ATR/회귀/BB/RSI/MACD/MTF/테이블)
+styles.css (7KB) — 다크 테마
+server.js (6KB) — 로컬 서버 (정적서빙+키움/야후 프록시, node server.js → localhost:8080)
+alert.wav — 2단계 얼럿음, 종목예시.txt — 종목 파일 예시
+새 세션에 넘길 핵심 정보:
+
+실행: 차트실행.bat 또는 node server.js 후 http://localhost:8080
+실데이터: 키움 모의투자키 필요 (앱에 저장됨, 자동연결), 지수(US100/IXIC)는 야후 경유
+기본 심볼 102110/1m, 얼럿 30개(기본음 2종+WAV 2종), TTS 종목 안내
+APK 변환 시 이슈: alert.wav·폰트 TTS는 네이티브 확인 필요, WebSocket은 wss莫? (모바일은 Capacitor 권장, 서버 프록시 없이 직접 호출은 CORS 차단)

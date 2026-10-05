@@ -1,0 +1,17 @@
+{
+  "name": "mini-tradingview",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "sync-www": "node scripts/sync-www.js",
+    "cap:sync": "npm run sync-www && npx cap sync",
+    "apk:guide": "echo README-APK.md 참고"
+  },
+  "dependencies": {
+    "ws": "^8.22.0",
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/cli": "^6.1.0"
+  }
+}
