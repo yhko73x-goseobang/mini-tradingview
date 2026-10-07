@@ -1,0 +1,60 @@
+name: Build Android APK (debug)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - "**.html"
+      - "**.js"
+      - "**.css"
+      - "capacitor.config.json"
+      - "package.json"
+      - ".github/workflows/build-apk.yml"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install deps
+        run: npm install
+
+      - name: Sync www
+        run: npm run sync-www
+
+      - name: Init + Add Android
+        run: |
+          npx cap init "Mini TradingView" com.minitradingview.app --web-dir=www || true
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Allow cleartext + mixed content (WS/프록시 대비)
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          grep -q 'usesCleartextTraffic' $MANIFEST || sed -i 's/<application/<application android:usesCleartextTraffic="true"/' $MANIFEST
+          grep -q 'INTERNET' $MANIFEST || sed -i 's|<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />|<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.INTERNET" />|' $MANIFEST || true
+          cat $MANIFEST
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk

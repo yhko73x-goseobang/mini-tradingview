@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0d1421" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.webmanifest" />
+<title>Mini TradingView — 키움 + Canvas 차트</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="symbols" id="symbolTabs"></div>
+</header>
+
+<main class="layout">
+  <section class="chart-area">
+    <div class="toprow">
+      <div class="timeframes tf-top" id="tfTabs"></div>
+      <div class="actions" id="actionBar">
+        <button id="btnFollow" class="active">▶ 최신봉</button>
+        <button id="btnMute" title="소리 켜기/끄기">🔊</button>
+        <button id="btnBeep" title="전자음만 켜기/끄기">🔔</button>
+        <button id="btnReset">⟲ 리셋</button>
+        <button id="btnSide" title="사이드바 접기/펼치기">▶</button>
+        <button id="btnCoach" title="흐름 브리핑 (지금)">📋 코치</button>
+        <button id="btnCoachVoice" title="코치 음성 켜기/끄기">코치음성</button>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="chartWrap">
+      <canvas id="chart"></canvas>
+      <canvas id="overlay"></canvas>
+      <div class="alert-banner" id="alertBanner" hidden></div>
+      <div class="alert-flash" id="alertFlash" hidden></div>
+      <div class="pine-top" id="pineTop" hidden></div>
+      <div class="pine-table" id="pineTable" hidden></div>
+      <div class="coach-box" id="coachBox"></div>
+    </div>
+    <div class="statusbar">
+      <span class="mini-logo">📈 Mini TradingView</span>
+      <span class="ohlc" id="ohlc">—</span>
+      <span id="feedInfo">Datafeed: getBars / subscribeBars</span>
+      <span class="hud" id="hud">— fps</span>
+      <span id="priceInfo">—</span>
+    </div>
+  </section>
+
+  <aside class="sidebar">
+    <section class="panel collapsed" id="kiwoomPanel">
+      <div class="arow ahead">
+        <button id="btnKiwoomFold" title="접기/펼치기">▶</button>
+        <strong>🔑 키움증권 실시간 연결</strong>
+        <span class="conn"><span id="connDot" class="dot sim"></span><span id="connText">시뮬레이션 피드</span></span>
+      </div>
+      <div class="abody">
+      <p class="hint">openapi.kiwoom.com에서 발급한 앱키/시크릿키 입력. 미입력 시 시뮬레이션 피드.</p>
+      <label>앱키<input id="kiwoomAppKey" type="password" placeholder="appkey" autocomplete="off" /></label>
+      <label>시크릿키<input id="kiwoomSecret" type="password" placeholder="secretkey" autocomplete="off" /></label>
+      <label class="switch"><input type="checkbox" id="kiwoomMock" checked /> 모의투자 서버</label>
+      <label>야후 폴링 간격
+        <select id="pollSec">
+          <option value="5">5초</option>
+          <option value="15" selected>15초 (기본)</option>
+          <option value="30">30초</option>
+          <option value="60">60초</option>
+        </select>
+      </label>
+      <div class="row">
+        <button id="btnKiwoom">연결</button>
+        <button id="btnKiwoomOff">해제</button>
+      </div>
+      <div class="row">
+        <button id="btnMonitor">모니터 끄기</button>
+        <span id="monitorStatus">확인 중…</span>
+      </div>
+      <div class="kw-status" id="kiwoomStatus">토큰: - · 차트: - · WS: -</div>
+      <p class="hint">모의키는 <b>모의투자 체크 유지</b>, 실전키는 체크 해제 (반대면 8030 오류). 모의투자는 KRX만 지원 → US100은 야후 경유. 실시간: 0B 주식체결 (현재가 FID 10). 차트: ka10079/80/81/82/83. 브라우저 CORS 차단 시 <code>node server.js</code> 실행 후 <code>http://localhost:8080</code>으로 접속.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="sigPanel">
+      <div class="sig-feed" id="sigFeed"></div>
+    </section>
+
+    <section class="panel grow">
+      <h3>📊 지수 (클릭 → 차트)</h3>
+      <div id="indexList"></div>
+    </section>
+
+    <section class="panel grow">
+      <h3>관심종목 (클릭 → 차트)</h3>
+      <div class="row quick-add">
+        <input id="quickCode" type="text" placeholder="종목번호 직접 입력 (예: 005930)" maxlength="30" />
+        <button id="btnQuickAdd">추가</button>
+      </div>
+      <div class="row">
+        <button id="btnExportWatch">목록 다운로드</button>
+        <label class="file-btn">파일 선택<input id="wlFile" type="file" accept=".txt" hidden /></label>
+      </div>
+      <div id="watchlist"></div>
+    </section>
+
+    <section class="panel">
+      <h3>📊 필수지표 (Pine묶음)</h3>
+      <label class="switch"><input type="checkbox" id="tglPine" checked /> 전체 ON/OFF</label>
+      <label class="switch"><input type="checkbox" id="tglPineATR" checked /> ATR 채널</label>
+      <label class="switch"><input type="checkbox" id="tglPineLR" checked /> 회귀채널</label>
+      <label class="switch"><input type="checkbox" id="tglPineBBDC" checked /> BB·돈치안</label>
+      <label class="switch"><input type="checkbox" id="tglPineOsc" checked /> RSI·MACD·다이버전스</label>
+      <label class="switch"><input type="checkbox" id="tglPineATF" checked /> ATF 추세선</label>
+      <label class="switch"><input type="checkbox" id="tglPineRSI" checked /> RSI 별도창</label>
+      <label class="switch"><input type="checkbox" id="tglPineMTF" checked /> MTF신호·테이블</label>
+    </section>
+
+    <section class="panel" id="toolPanel">
+      <h3>📊 차트 메뉴</h3>
+      <div class="toolbar" id="toolbar">
+        <label><input type="checkbox" id="tglMA" checked /> MA단기</label>
+        <label class="ma-set"><input id="maShort" value="20,50" title="쉼표로 구분 (예: 5,20,60)" /></label>
+        <label><input type="checkbox" id="tglMALong" checked /> MA100/200</label>
+        <label class="ma-set"><input id="maLong" value="100,200" title="쉼표로 구분" /></label>
+        <label><input type="checkbox" id="tglBB" checked /> BB</label>
+        <label><input type="checkbox" id="tglBB60" checked /> BB60</label>
+        <label><input type="checkbox" id="tglPC" checked /> PC</label>
+        <label><input type="checkbox" id="tglVol" checked /> V</label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>🔔 얼럿 종목 (<span id="alertCount">0</span>)</h3>
+      <p class="hint">등록된 종목만 소리+배너. 차트 종목도 등록해야 울림.</p>
+      <div class="row">
+        <button id="btnAlertAdd">＋ 현재 차트 종목 추가</button>
+      </div>
+      <div class="row">
+        <button id="btnExportAlerts">목록 다운로드</button>
+        <input id="alertFile" type="file" accept=".txt" />
+        <button id="btnImportAlerts">가져오기</button>
+      </div>
+      <div id="alertList"></div>
+    </section>
+
+    <section class="panel grow">
+      <h3>로그</h3>
+      <div id="log"></div>
+    </section>
+
+    <section class="panel">
+      <h3>📁 종목 TXT 업로드</h3>
+      <p class="hint">한 줄에 하나씩. 예) <code>005930 삼성전자</code> 또는 <code>005930</code></p>
+      <input id="fileInput" type="file" accept=".txt" />
+      <div class="row">
+        <button id="btnSample">예시 파일 받기</button>
+      </div>
+      <textarea id="codeBox" rows="4" placeholder="직접 입력도 가능 (한 줄에 하나)"></textarea>
+      <button id="btnLoadCodes">목록에 추가</button>
+    </section>
+
+    <section class="panel alert-panel collapsed" id="alertPanel">
+      <div class="arow ahead">
+        <button id="btnAlertFold" title="접기/펼치기">▶</button>
+        <strong>🔔 하단 터치 얼럿</strong>
+      </div>
+      <div class="abody">
+      <div class="arow">
+        <label>시간대
+          <select id="alertTF">
+            <option value="chart">차트와 동일</option>
+            <option value="1m">1m</option>
+            <option value="3m">3m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="30m">30m</option>
+            <option value="1h">1h</option>
+            <option value="4h">4h</option>
+            <option value="1D">1D(일봉)</option>
+            <option value="1W">1W(주봉)</option>
+            <option value="1M">1M(월봉)</option>
+          </select>
+        </label>
+        <label>PC <input id="pcLen" type="number" value="60" min="5" max="200" /></label>
+        <label>BB <input id="bbN" type="number" value="20" min="5" max="200" /></label>
+        <label>σ <input id="bbK" type="number" value="2" min="1" max="3" step="0.5" /></label>
+        <span class="agroup"><b>기본음</b>
+          <label class="switch"><input type="checkbox" id="alertPC" checked /> PC하단</label>
+          <label class="switch"><input type="checkbox" id="alertBB" checked /> BB하단</label>
+          <label class="switch"><input type="checkbox" id="alertVolBB" checked /> 거래량↑BB상단</label>
+          <button id="btnTestSound">기본음</button>
+        </span>
+        <span class="agroup"><b>WAV</b>
+          <label class="switch"><input type="checkbox" id="alertStage" checked /> BB이탈후PC</label>
+          <label class="switch"><input type="checkbox" id="alertBB60" checked /> BB20↓BB60</label>
+          <label class="switch"><input type="checkbox" id="alertPCMid" /> PC중심</label>
+          <label class="switch"><input type="checkbox" id="alertBBMid" /> BB중간돌파</label>
+          <label class="switch"><input type="checkbox" id="alertVoice" checked /> 음성안내</label>
+          <button id="btnTestWav">WAV</button>
+        </span>
+        <button id="btnClearAlerts">기록지우기</button>
+      </div>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<script src="datafeed.js"></script>
+<script src="chart.js"></script>
+<script src="pinebundle.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

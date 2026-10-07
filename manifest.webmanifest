@@ -1,0 +1,8 @@
+{
+  "name": "mini-tradingview",
+  "short_name": "MiniTV",
+  "display": "standalone",
+  "background_color": "#0d1421",
+  "theme_color": "#0d1421",
+  "start_url": "./index.html"
+}

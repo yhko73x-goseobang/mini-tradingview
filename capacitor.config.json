@@ -1,0 +1,11 @@
+{
+  "appId": "com.minitradingview.app",
+  "appName": "Mini TradingView",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
